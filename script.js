@@ -1,6 +1,10 @@
 // script.js
 import { auth, db } from "./firebaseConfig.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { 
+  onAuthStateChanged, 
+  signOut, 
+  updatePassword 
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // 🔹 Elementos principais
@@ -34,10 +38,8 @@ function hideLoading() { loadingOverlay.style.display = 'none'; }
 // 🔹 Ajusta topbar e iframe
 document.addEventListener("DOMContentLoaded", () => {
   const topbar = document.querySelector(".topbar");
-  if (topbar) topbar.style.height = "32px"; // 🔻 diminui topbar
-
-  // 🔻 aumenta área útil dos iframes para baixo
-  iframeContainer.style.height = "calc(100vh - 32px)"; // pega quase toda a tela
+  if (topbar) topbar.style.height = "32px";
+  iframeContainer.style.height = "calc(100vh - 32px)";
   iframeContainer.style.top = "0";
   frame.style.height = "calc(100vh - 32px)";
 });
@@ -63,12 +65,10 @@ function openRoute(route) {
     await sendAuthToIframe();
     ajustarAlturaIframe(frame);
 
-    // 🔹 Envia mensagem para aumentar badges apenas se for escala e funcionário
     const user = auth.currentUser;
     if (user) {
       const userSnap = await getDoc(doc(db, "users", user.uid));
       const isAdmin = userSnap.exists() ? userSnap.data().admin===true : false;
-
       if (!isAdmin && route === 'escala') {
         frame.contentWindow.postMessage({ type: "aumentarBadges" }, "*");
       }
@@ -80,33 +80,18 @@ function openRoute(route) {
   frame.src = src;
 }
 
-// 🔹 Adiciona rota Escala
-const escalaLi = document.createElement('li');
-escalaLi.dataset.target = 'escala';
-escalaLi.innerHTML = "📅 <span class='label'>Escala</span>";
-sidebar.querySelector('ul').appendChild(escalaLi);
-escalaLi.addEventListener('click', () => openRoute('escala'));
-
-// 🔹 Adiciona rota Funcionário
-ROUTES.funcionario = "sistemas/funcionario/index.html";
-
-const funcionarioLi = document.createElement('li');
-funcionarioLi.dataset.target = 'funcionario';
-funcionarioLi.innerHTML = "👤 <span class='label'>Funcionário</span>";
-sidebar.querySelector('ul').appendChild(funcionarioLi);
-
-funcionarioLi.addEventListener('click', () => openRoute('funcionario'));
-
-// 🔹 Adiciona rota Suporte
-ROUTES.suporte = "sistemas/suporte/index.html";
-
-const suporteLi = document.createElement('li');
-suporteLi.dataset.target = 'suporte';
-suporteLi.innerHTML = "☎️ <span class='label'>Suporte</span>";
-sidebar.querySelector('ul').appendChild(suporteLi);
-
-suporteLi.addEventListener('click', () => openRoute('suporte'));
-
+// 🔹 Adiciona rotas dinâmicas
+['escala', 'funcionario', 'suporte'].forEach(route => {
+  let li = document.createElement('li');
+  li.dataset.target = route;
+  li.innerHTML = {
+    escala: "📅 <span class='label'>Escala</span>",
+    funcionario: "👤 <span class='label'>Funcionário</span>",
+    suporte: "☎️ <span class='label'>Suporte</span>"
+  }[route];
+  sidebar.querySelector('ul').appendChild(li);
+  li.addEventListener('click', () => openRoute(route));
+});
 
 // 🔹 Sidebar navigation
 document.querySelectorAll('.sidebar li').forEach(li => {
@@ -153,7 +138,6 @@ async function ensureUserInFirestore(user) {
     const finalSnap = await getDoc(userRef);
     const userData = finalSnap.data();
     return { matricula: userData.matricula, isAdmin: userData.admin };
-
   } catch(e) {
     console.error("Erro ao salvar usuário em 'users':", e);
     throw e;
@@ -204,17 +188,14 @@ onAuthStateChanged(auth, async (user) => {
     hideLoading();
 
     console.log(`Usuário autenticado: ${matricula} | Admin: ${isAdmin}`);
-
   } catch(err) {
     console.warn("⚠️ Falha temporária ao inicializar usuário:", err);
-
     if (retryCount < MAX_RETRIES) {
       retryCount++;
       console.log(`Tentando novamente (${retryCount}/${MAX_RETRIES})...`);
       setTimeout(() => { onAuthStateChanged(auth, ()=>{}); }, 1500);
       return;
     }
-
     console.error("Erro persistente — mantendo tela de carregamento.");
     showLoading();
   }
@@ -239,7 +220,6 @@ async function sendAuthToIframe() {
     };
 
     frame.contentWindow.postMessage(payload, "*");
-
   } catch(err) {
     console.error("Erro ao enviar auth ao iframe:", err);
   }
@@ -256,6 +236,43 @@ if (logoutBtn) {
     } catch(err) {
       console.error("Erro ao deslogar:", err);
       alert("Falha ao deslogar, tente novamente.");
+    }
+  });
+}
+
+// ============================================================
+// 🔹 Alterar senha
+// ============================================================
+if (changePassBtn) {
+  changePassBtn.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      alert("Usuário não autenticado!");
+      return;
+    }
+
+    const newPassword = prompt("Digite a nova senha (mínimo 6 caracteres):");
+    if (!newPassword || newPassword.length < 6) {
+      alert("Senha inválida! Deve ter no mínimo 6 caracteres.");
+      return;
+    }
+
+    try {
+      await updatePassword(user, newPassword);
+      alert("Senha alterada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao alterar senha:", error);
+      if (error.code === 'auth/requires-recent-login') {
+        alert("Por segurança, você precisa entrar novamente para alterar a senha.");
+        try {
+          await signOut(auth);
+          window.location.href = 'login.html';
+        } catch (signOutErr) {
+          console.error("Erro ao deslogar para reautenticação:", signOutErr);
+        }
+      } else {
+        alert("Falha ao alterar senha: " + error.message);
+      }
     }
   });
 }
