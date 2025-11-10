@@ -50,9 +50,15 @@ onAuthStateChanged(auth, user => {
 function aplicarPermissoes() {
     const uploadBtns = document.querySelectorAll(".upload-btn");
 
-    uploadBtns.forEach(btn => {
-        btn.style.display = isAdmin ? "inline-block" : "none";
-    });
+    if (isAdmin) {
+        uploadBtns.forEach(btn => {
+            btn.style.setProperty("display", "inline-block", "important");
+        });
+    } else {
+        uploadBtns.forEach(btn => {
+            btn.style.setProperty("display", "none", "important");
+        });
+    }
 }
 
 async function handleFileUpload(file, tipo) {
