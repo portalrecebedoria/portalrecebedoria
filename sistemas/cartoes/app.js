@@ -14,7 +14,6 @@ const fileProdata = document.getElementById("fileProdata");
 const fileDigicon = document.getElementById("fileDigicon");
 const tabela = document.getElementById("tabelaCartoes").querySelector("tbody");
 
-const btnFiltrar = document.getElementById("btnFiltrar");
 const btnLimpar = document.getElementById("btnLimpar");
 
 const filtroTipo = document.getElementById("filtroTipo");
@@ -41,9 +40,20 @@ onAuthStateChanged(auth, user => {
         .then(snapshot => {
             const u = snapshot.docs[0];
             isAdmin = u?.data()?.admin || false;
+
+            aplicarPermissoes();
             carregarCartoes();
         });
 });
+
+/** ✅ Mostrar / ocultar upload conforme admin */
+function aplicarPermissoes() {
+    const uploadBtns = document.querySelectorAll(".upload-btn");
+
+    uploadBtns.forEach(btn => {
+        btn.style.display = isAdmin ? "inline-block" : "none";
+    });
+}
 
 async function handleFileUpload(file, tipo) {
     if (!file) return;
@@ -71,8 +81,7 @@ async function handleFileUpload(file, tipo) {
             row["Identificação 1/2 Viagem"] ||
             row["Nº Cartão Viagem"] ||
             "",
-        dataRetirada:
-            excelDateToJSDate(row["Data Retirada"] || row["Desligados"]),
+        dataRetirada: excelDateToJSDate(row["Data Retirada"] || row["Desligados"]),
         tipo
     }));
 
@@ -123,9 +132,7 @@ function renderTabela(lista) {
     });
 }
 
-// -----------------------------
-// ✅ BUSCA INSTANTÂNEA
-// -----------------------------
+/** ✅ BUSCA INSTANTÂNEA */
 function aplicarFiltros() {
     const tipo = filtroTipo.value;
     const mat = filtroMatricula.value.trim();
@@ -146,13 +153,9 @@ function aplicarFiltros() {
     renderTabela(filtrado);
 }
 
-// ✅ busca instantânea em todos os inputs
 [filtroTipo, filtroMatricula, filtroIdBordo, filtroIdViagem, filtroSerial]
     .forEach(el => el.addEventListener("input", aplicarFiltros));
 
-btnFiltrar.addEventListener("click", aplicarFiltros);
-
-// LIMPAR FILTROS
 btnLimpar.addEventListener("click", () => {
     filtroTipo.value = "";
     filtroMatricula.value = "";

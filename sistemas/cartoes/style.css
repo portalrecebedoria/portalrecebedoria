@@ -131,3 +131,7 @@ tr:hover {
     box-shadow: 0 0 10px #00eaff;
     pointer-events: none;
 }
+
+.upload-btn {
+    display: none;
+}
