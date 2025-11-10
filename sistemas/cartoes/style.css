@@ -132,7 +132,12 @@ tr:hover {
     pointer-events: none;
 }
 
-/* Upload oculto por padrão */
+/* OCULTAR BOTÕES DE UPLOAD PARA TODOS POR PADRÃO */
 .upload-btn {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
 }

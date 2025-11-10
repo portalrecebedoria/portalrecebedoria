@@ -53,14 +53,14 @@ function aplicarPermissoes() {
     if (isAdmin) {
         uploadBtns.forEach(btn => {
             btn.style.setProperty("display", "inline-block", "important");
-        });
-    } else {
-        uploadBtns.forEach(btn => {
-            btn.style.setProperty("display", "none", "important");
+            btn.style.setProperty("visibility", "visible", "important");
+            btn.style.setProperty("opacity", "1", "important");
+            btn.style.setProperty("pointer-events", "all", "important");
+            btn.style.removeProperty("height");
+            btn.style.removeProperty("overflow");
         });
     }
 }
-
 async function handleFileUpload(file, tipo) {
     if (!file) return;
 
